@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# A git hook to config user.email if commiting from within a work dir
+# This should probably be a post-checkout hook so that it is copied
+# to repos that are cloned as opposed to only repos that are initialized.
+
+CWD_UNAME=$(git config user.name)
+CWD_EMAIL=$(git config user.email)
+GLOBAL_EMAIL=$(git config --global user.email)
+CURRENT_DIR_NAME=${PWD##*/}
+# CURRENT_DIR="$WORKDIR/**/$CURRENT_DIR_NAME"
+
+if [ ! -d "$WORKDIR" ]; then
+	printf '$WORKDIR is not set\n'
+	exit 1
+fi
+
+if [ "${PWD:0:${#WORKDIR}}" = "$WORKDIR" ] && [ "$CWD_EMAIL" = "$GLOBAL_EMAIL" ];
+ then
+  printf '%s\n\n' "$CURRENT_DIR_NAME is a work repo"
+  printf '%s\n' "Are you sure you want to commit as:"
+  printf '\t%s\n' "name: $CWD_UNAME "
+  printf '\t%s\n\n\t' "email: $CWD_EMAIL "
+
+  exec < /dev/tty
+
+  while true; do
+  	read -p "y/[n]? " ANSWER
+  	if [ "$ANSWER" = "" ] || [ "$ANSWER" = "n" ]; then
+  		exec <&-
+  		printf '\n%s\n' "commit cancelled"
+  		exit 1
+  	else
+  		exit 0
+  	fi
+  done
+else
+	exit 0
+fi
